@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UCSP – Data Upload</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #080a0f;
+    --s1:      #0f1118;
+    --s2:      #161924;
+    --s3:      #1d2130;
+    --border:  #252838;
+    --gold:    #e8b84b;
+    --goldDim: #9c7b32;
+    --text:    #e2e4ee;
+    --muted:   #6b6e82;
+    --green:   #4ade80;
+    --red:     #f87171;
+    --blue:    #60a5fa;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  /* ── Layout ── */
+  .shell    { display: flex; min-height: 100vh; }
+  .sidebar  { width: 220px; background: var(--s1); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; }
+  .main     { flex: 1; padding: 32px 40px; max-width: 860px; }
+
+  /* ── Sidebar ── */
+  .logo     { padding: 28px 20px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .logo-icon{ width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, var(--gold), var(--goldDim)); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .logo-text{ font-size: 13px; font-weight: 700; letter-spacing: .02em; }
+  .logo-sub { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  nav       { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; border: none; cursor: pointer; background: transparent; color: var(--muted); font-size: 13px; text-align: left; transition: all .15s; width: 100%; }
+  .nav-item.active { background: rgba(232,184,75,.1); color: var(--gold); font-weight: 600; }
+  .nav-item:hover:not(.active) { background: rgba(255,255,255,.04); color: var(--text); }
+
+  /* ── Steps ── */
+  .step     { display: none; flex-direction: column; gap: 20px; }
+  .step.active { display: flex; }
+  h1        { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .sub      { font-size: 13px; color: var(--muted); }
+
+  /* ── Cards ── */
+  .card     { background: var(--s2); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; }
+  .card-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+
+  /* ── Table rows ── */
+  .row-grid { display: grid; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .row-grid input, .row-grid select {
+    background: var(--s3); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-size: 12px; padding: 6px 8px; width: 100%;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .row-grid input::placeholder { color: var(--muted); }
+  .row-grid input:focus, .row-grid select:focus { outline: none; border-color: var(--gold); }
+  .row-grid select option { background: var(--s3); }
+  .del-btn  { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.3); color: var(--red); border-radius: 6px; cursor: pointer; font-size: 14px; padding: 4px 8px; }
+  .del-btn:hover { background: rgba(248,113,113,.2); }
+
+  /* ── Buttons ── */
+  .btn      { padding: 9px 20px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; font-size: 13px; font-family: 'Outfit', sans-serif; font-weight: 500; transition: all .15s; }
+  .btn:hover { background: rgba(255,255,255,.06); }
+  .btn-gold { background: rgba(232,184,75,.15); border-color: rgba(232,184,75,.4); color: var(--gold); }
+  .btn-gold:hover { background: rgba(232,184,75,.25); }
+  .btn-green { background: rgba(74,222,128,.12); border-color: rgba(74,222,128,.35); color: var(--green); }
+  .btn-green:hover { background: rgba(74,222,128,.22); }
+  .btn-blue { background: rgba(96,165,250,.12); border-color: rgba(96,165,250,.35); color: var(--blue); }
+  .btn-blue:hover { background: rgba(96,165,250,.22); }
+  .add-btn  { background: rgba(232,184,75,.08); border: 1px dashed rgba(232,184,75,.3); color: var(--goldDim); border-radius: 8px; cursor: pointer; font-size: 12px; padding: 7px 14px; width: 100%; margin-top: 6px; transition: all .15s; }
+  .add-btn:hover { background: rgba(232,184,75,.14); color: var(--gold); }
+
+  /* ── Navigation bar ── */
+  .nav-bar  { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
+  .step-dots{ display: flex; gap: 6px; margin: 0 auto; }
+  .dot      { width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: background .2s; }
+  .dot.done { background: var(--green); }
+  .dot.active { background: var(--gold); }
+
+  /* ── JSON tab ── */
+  textarea  { background: var(--s3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 12px; resize: vertical; width: 100%; }
+  textarea:focus { outline: none; border-color: var(--gold); }
+
+  /* ── Status ── */
+  .status   { font-size: 12px; padding: 10px 14px; border-radius: 8px; margin-top: 10px; display: none; }
+  .status.ok  { background: rgba(74,222,128,.1); border: 1px solid rgba(74,222,128,.3); color: var(--green); display: block; }
+  .status.err { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.3); color: var(--red); display: block; }
+  .status.info{ background: rgba(96,165,250,.1);  border: 1px solid rgba(96,165,250,.3);  color: var(--blue); display: block; }
+
+  /* ── Review card ── */
+  .kv       { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .kv:last-child { border-bottom: none; }
+  .kv .k    { color: var(--muted); }
+  .kv .v    { font-family: 'JetBrains Mono', monospace; color: var(--text); }
+
+  /* ── Progress ── */
+  .progress-wrap { background: var(--s3); border-radius: 99px; height: 4px; overflow: hidden; }
+  .progress-bar  { height: 100%; background: var(--gold); border-radius: 99px; transition: width .4s; }
+
+  /* ── Tag ── */
+  .tag      { font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+  .tag-green { background: rgba(74,222,128,.15); color: var(--green); border: 1px solid rgba(74,222,128,.3); }
+  .tag-red   { background: rgba(248,113,113,.15); color: var(--red);   border: 1px solid rgba(248,113,113,.3); }
+  .tag-gold  { background: rgba(232,184,75,.15);  color: var(--gold);  border: 1px solid rgba(232,184,75,.3); }
+
+  /* ── Tabs ── */
+  .tabs     { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tab      { padding: 6px 16px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; font-family: 'Outfit', sans-serif; }
+  .tab.active { background: var(--s2); color: var(--text); border-color: rgba(232,184,75,.4); }
+
+  /* ── Result grid ── */
+  .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card   { background: var(--s3); border-radius: 8px; padding: 14px 16px; }
+  .stat-label  { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .stat-value  { font-size: 24px; font-weight: 700; font-family: 'Cormorant Garamond', serif; }
+
+  /* ── Timetable ── */
+  .tt-table    { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .tt-table th { background: var(--s3); color: var(--muted); font-weight: 500; padding: 6px 8px; text-align: center; border: 1px solid var(--border); }
+  .tt-table td { border: 1px solid var(--border); padding: 6px 8px; vertical-align: top; min-height: 40px; }
+  .tt-cell     { background: var(--s3); border-radius: 4px; padding: 4px 6px; }
+  .tt-course   { font-weight: 600; color: var(--gold); font-size: 11px; }
+  .tt-sub      { color: var(--muted); font-size: 10px; margin-top: 2px; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2a2d3a; border-radius: 10px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">🎓</div>
+      <div>
+        <div class="logo-text">UCSP</div>
+        <div class="logo-sub">Data Upload</div>
+      </div>
+    </div>
+    <nav>
+      <button class="nav-item active" onclick="goTo(0)">① Basic info</button>
+      <button class="nav-item" onclick="goTo(1)">② Teachers</button>
+      <button class="nav-item" onclick="goTo(2)">③ Classrooms</button>
+      <button class="nav-item" onclick="goTo(3)">④ Courses</button>
+      <button class="nav-item" onclick="goTo(4)">⑤ Student groups</button>
+      <button class="nav-item" onclick="goTo(5)">⑥ Teaching events</button>
+      <button class="nav-item" onclick="goTo(6)">⑦ Review &amp; upload</button>
+      <button class="nav-item" onclick="goTo(7)">⑧ Generate &amp; results</button>
+    </nav>
+    <div style="padding:12px 14px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Or use JSON directly</div>
+      <button class="btn btn-gold" onclick="goTo(8)" style="width:100%;font-size:12px;">JSON upload</button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- Step 0: Basic Info -->
+    <div class="step active" id="step-0">
+      <div>
+        <h1>Upload university data</h1>
+        <p class="sub">Define your scheduling instance step by step.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Instance details</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Instance name</label>
+            <input id="f-name" type="text" value="my_university" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:8px 10px;width:100%;">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Semester weeks</label>
+            <input id="f-weeks" type="number" value="16" min="1" max="52" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:8px 10px;width:100%;">
+          </div>
+        </div>
+        <div style="margin-top:14px;padding:12px;background:var(--s3);border-radius:8px;font-size:12px;color:var(--muted);line-height:1.6;">
+          <strong style="color:var(--gold);">How it works:</strong> Fill in each section using the sidebar.
+          Teaching events link everything together — each event assigns a course + teacher to one or more student groups.
+          The POGA-DP algorithm will then find an optimal conflict-free timetable.
+        </div>
+      </div>
+      <div class="nav-bar">
+        <button class="btn btn-gold" onclick="goTo(1)">Next: Teachers →</button>
+      </div>
+    </div>
+
+    <!-- Step 1: Teachers -->
+    <div class="step" id="step-1">
+      <div><h1>Teachers</h1><p class="sub">Add all instructors who will be assigned to courses.</p></div>
+      <div class="card">
+        <div class="card-title">
+          <span>Teacher list</span>
+          <span id="teacher-count" class="tag tag-gold">0 added</span>
+        </div>
+        <div style="display:grid;grid-template-columns:50px 1fr 1fr 32px;gap:8px;margin-bottom:6px;">
+          <span style="font-size:11px;color:var(--muted);">ID</span>
+          <span style="font-size:11px;color:var(--muted);">Full name</span>
+          <span style="font-size:11px;color:var(--muted);">Department</span>
+          <span></span>
+        </div>
+        <div id="teachers-list"></div>
+        <button class="add-btn" onclick="addTeacher()">+ Add teacher</button>
+      </div>
+      <div class="nav-bar">
+        <button class="btn" onclick="goTo(0)">← Back</button>
+        <button class="btn btn-gold" onclick="goTo(2)">Next: Classrooms →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Classrooms -->
+    <div class="step" id="step-2">
+      <div><h1>Classrooms</h1><p class="sub">Add lecture halls and labs. Room type must match course type.</p></div>
+      <div class="card">
+        <div class="card-title">
+          <span>Room list</span>
+          <span id="room-count" class="tag tag-gold">0 added</span>
+        </div>
+        <div style="display:grid;grid-template-columns:50px 1fr 80px 110px 32px;gap:8px;margin-bottom:6px;">
+          <span style="font-size:11px;color:var(--muted);">ID</span>
+          <span style="font-size:11px;color:var(--muted);">Room name</span>
+          <span style="font-size:11px;color:var(--muted);">Capacity</span>
+          <span style="font-size:11px;color:var(--muted);">Type</span>
+          <span></span>
+        </div>
+        <div id="rooms-list"></div>
+        <button class="add-btn" onclick="addRoom()">+ Add classroom</button>
+      </div>
+      <div class="nav-bar">
+        <button class="btn" onclick="goTo(1)">← Back</button>
+        <button class="btn btn-gold" onclick="goTo(3)">Next: Courses →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Courses -->
+    <div class="step" id="step-3">
+      <div><h1>Courses</h1><p class="sub">Define all courses. Weekly hours = number of time slots per week.</p></div>
+      <div class="card">
+        <div class="card-title">
+          <span>Course list</span>
+          <span id="course-count" class="tag tag-gold">0 added</span>
+        </div>
+        <div style="display:grid;grid-template-columns:50px 90px 1fr 70px 110px 32px;gap:8px;margin-bottom:6px;">
+          <span style="font-size:11px;color:var(--muted);">ID</span>
+          <span style="font-size:11px;color:var(--muted);">Code</span>
+          <span style="font-size:11px;color:var(--muted);">Course name</span>
+          <span style="font-size:11px;color:var(--muted);">Hrs/wk</span>
+          <span style="font-size:11px;color:var(--muted);">Type</span>
+          <span></span>
+        </div>
+        <div id="courses-list"></div>
+        <button class="add-btn" onclick="addCourse()">+ Add course</button>
+      </div>
+      <div class="nav-bar">
+        <button class="btn" onclick="goTo(2)">← Back</button>
+        <button class="btn btn-gold" onclick="goTo(4)">Next: Student groups →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Admin Classes -->
+    <div class="step" id="step-4">
+      <div><h1>Student groups</h1><p class="sub">Each group is a cohort of students (e.g. CS Year 1 Section A).</p></div>
+      <div class="card">
+        <div class="card-title">
+          <span>Group list</span>
+          <span id="aclass-count" class="tag tag-gold">0 added</span>
+        </div>
+        <div style="display:grid;grid-template-columns:50px 1fr 1fr 80px 32px;gap:8px;margin-bottom:6px;">
+          <span style="font-size:11px;color:var(--muted);">ID</span>
+          <span style="font-size:11px;color:var(--muted);">Group name</span>
+          <span style="font-size:11px;color:var(--muted);">Program</span>
+          <span style="font-size:11px;color:var(--muted);">Students</span>
+          <span></span>
+        </div>
+        <div id="aclasses-list"></div>
+        <button class="add-btn" onclick="addClass()">+ Add group</button>
+      </div>
+      <div class="nav-bar">
+        <button class="btn" onclick="goTo(3)">← Back</button>
+        <button class="btn btn-gold" onclick="goTo(5)">Next: Teaching events →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Teaching Events -->
+    <div class="step" id="step-5">
+      <div><h1>Teaching events</h1><p class="sub">Each event = one course + one teacher + one or more student groups. Joint events share multiple groups.</p></div>
+      <div class="card">
+        <div class="card-title">
+          <span>Event list</span>
+          <span id="event-count" class="tag tag-gold">0 added</span>
+        </div>
+        <div style="display:grid;grid-template-columns:50px 80px 80px 1fr 70px 110px 32px;gap:8px;margin-bottom:6px;">
+          <span style="font-size:11px;color:var(--muted);">ID</span>
+          <span style="font-size:11px;color:var(--muted);">Course ID</span>
+          <span style="font-size:11px;color:var(--muted);">Teacher ID</span>
+          <span style="font-size:11px;color:var(--muted);">Group IDs (comma)</span>
+          <span style="font-size:11px;color:var(--muted);">Hrs/wk</span>
+          <span style="font-size:11px;color:var(--muted);">Room type</span>
+          <span></span>
+        </div>
+        <div id="events-list"></div>
+        <button class="add-btn" onclick="addEvent()">+ Add teaching event</button>
+      </div>
+      <div class="nav-bar">
+        <button class="btn" onclick="goTo(4)">← Back</button>
+        <button class="btn btn-gold" onclick="goTo(6)">Next: Review →</button>
+      </div>
+    </div>
+
+    <!-- Step 6: Review -->
+    <div class="step" id="step-6">
+      <div><h1>Review &amp; upload</h1><p class="sub">Check your data before sending to the scheduler.</p></div>
+      <div class="card" id="review-card">
+        <div class="card-title">Summary</div>
+        <div id="review-content"></div>
+      </div>
+      <div id="upload-status" class="status"></div>
+      <div class="nav-bar">
+        <button class="btn" onclick="goTo(5)">← Back</button>
+        <button class="btn btn-green" onclick="uploadData()">⬆ Upload to backend</button>
+        <button class="btn" onclick="downloadJson()">⬇ Download JSON</button>
+      </div>
+    </div>
+
+    <!-- Step 7: Generate & Results -->
+    <div class="step" id="step-7">
+      <div><h1>Generate schedule</h1><p class="sub">Run the POGA-DP algorithm on your uploaded data.</p></div>
+
+      <div class="card">
+        <div class="card-title">GA parameters</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">Population size</label>
+            <input id="g-pop" type="number" value="50" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:7px 9px;width:100%;">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">Max generations</label>
+            <input id="g-gens" type="number" value="200" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:7px 9px;width:100%;">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">Time limit (sec)</label>
+            <input id="g-time" type="number" value="300" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:7px 9px;width:100%;">
+          </div>
+        </div>
+      </div>
+
+      <div id="gen-status" class="status"></div>
+
+      <div id="progress-section" style="display:none;" class="card">
+        <div class="card-title">Running POGA-DP...</div>
+        <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:5%"></div></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px;" id="progress-label">Initialising...</div>
+      </div>
+
+      <div id="result-section" style="display:none;">
+        <div class="result-grid">
+          <div class="stat-card">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" id="r-feasible" style="font-size:16px;"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Fitness</div>
+            <div class="stat-value" id="r-fitness" style="color:var(--gold);"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Occupancy</div>
+            <div class="stat-value" id="r-occ" style="color:var(--blue);"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-title">Timetable preview</div>
+          <div style="margin-bottom:10px;">
+            <label style="font-size:12px;color:var(--muted);">Student group: </label>
+            <select id="tt-class-select" onchange="loadTimetable()" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;margin-left:6px;"></select>
+          </div>
+          <div id="tt-container" style="overflow-x:auto;"></div>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+          <a id="csv-link" href="#" class="btn btn-green" style="text-decoration:none;font-size:13px;">⬇ Download CSV</a>
+          <a id="json-link" href="#" class="btn btn-blue" style="text-decoration:none;font-size:13px;">⬇ Download JSON</a>
+        </div>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn" onclick="goTo(6)">← Back</button>
+        <button class="btn btn-gold" id="run-btn" onclick="runGeneration()">▶ Run scheduler</button>
+      </div>
+    </div>
+
+    <!-- Step 8: JSON Upload -->
+    <div class="step" id="step-8">
+      <div><h1>JSON upload</h1><p class="sub">Paste your full dataset as JSON, or load the example template.</p></div>
+      <div class="card">
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <button class="btn btn-gold" onclick="loadTemplate()" style="font-size:12px;">Load template</button>
+          <button class="btn" onclick="document.getElementById('json-area').value=''" style="font-size:12px;">Clear</button>
+          <button class="btn" onclick="formatJson()" style="font-size:12px;">Format</button>
+        </div>
+        <textarea id="json-area" rows="18" placeholder='{"name":"my_university","num_weeks":16,"teachers":[...],...}'></textarea>
+        <div id="json-status" class="status"></div>
+        <div style="display:flex;gap:10px;margin-top:12px;">
+          <button class="btn btn-green" onclick="uploadJson()">⬆ Upload &amp; register</button>
+          <button class="btn btn-gold" onclick="goTo(7)">→ Go to Generate</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const API = "http://localhost:8000";
+const DAYS = ["Mon","Tue","Wed","Thu","Fri"];
+const PERIODS = ["P1","P2","P3","P4","P5"];
+
+let currentStep = 0;
+let tCount=1, rCount=1, cCount=1, aCount=1, eCount=1;
+let currentJobId = null;
+let pollInterval = null;
+
+// ── Navigation ──────────────────────────────────────────────
+
+function goTo(n) {
+  document.querySelectorAll('.step').forEach((s,i) => s.classList.toggle('active', i===n));
+  document.querySelectorAll('.nav-item').forEach((b,i) => b.classList.toggle('active', i===n));
+  currentStep = n;
+  if (n === 6) renderReview();
+  window.scrollTo(0, 0);
+}
+
+// ── Add rows ────────────────────────────────────────────────
+
+function makeRow(cols, containerId, countId) {
+  const d = document.createElement('div');
+  d.className = 'row-grid';
+  d.style.gridTemplateColumns = cols;
+  return d;
+}
+
+function addTeacher() {
+  const id = tCount++;
+  const d = document.createElement('div');
+  d.className = 'row-grid';
+  d.style.gridTemplateColumns = '50px 1fr 1fr 32px';
+  d.innerHTML = `
+    <input type="number" value="${id}" placeholder="ID">
+    <input type="text" placeholder="e.g. Dr. Ahmed Hassan">
+    <input type="text" placeholder="e.g. CS">
+    <button class="del-btn" onclick="this.parentNode.remove();updateCount('teachers-list','teacher-count')">×</button>`;
+  document.getElementById('teachers-list').appendChild(d);
+  updateCount('teachers-list','teacher-count');
+}
+
+function addRoom() {
+  const id = rCount++;
+  const d = document.createElement('div');
+  d.className = 'row-grid';
+  d.style.gridTemplateColumns = '50px 1fr 80px 110px 32px';
+  d.innerHTML = `
+    <input type="number" value="${id}" placeholder="ID">
+    <input type="text" placeholder="e.g. Hall-A">
+    <input type="number" value="60" placeholder="Cap.">
+    <select><option value="lecture">lecture</option><option value="lab">lab</option></select>
+    <button class="del-btn" onclick="this.parentNode.remove();updateCount('rooms-list','room-count')">×</button>`;
+  document.getElementById('rooms-list').appendChild(d);
+  updateCount('rooms-list','room-count');
+}
+
+function addCourse() {
+  const id = cCount++;
+  const d = document.createElement('div');
+  d.className = 'row-grid';
+  d.style.gridTemplateColumns = '50px 90px 1fr 70px 110px 32px';
+  d.innerHTML = `
+    <input type="number" value="${id}" placeholder="ID">
+    <input type="text" placeholder="e.g. CS101">
+    <input type="text" placeholder="Course name">
+    <input type="number" value="2" placeholder="Hrs">
+    <select><option value="lecture">lecture</option><option value="lab">lab</option></select>
+    <button class="del-btn" onclick="this.parentNode.remove();updateCount('courses-list','course-count')">×</button>`;
+  document.getElementById('courses-list').appendChild(d);
+  updateCount('courses-list','course-count');
+}
+
+function addClass() {
+  const id = aCount++;
+  const d = document.createElement('div');
+  d.className = 'row-grid';
+  d.style.gridTemplateColumns = '50px 1fr 1fr 80px 32px';
+  d.innerHTML = `
+    <input type="number" value="${id}" placeholder="ID">
+    <input type="text" placeholder="e.g. CS-Y1-A">
+    <input type="text" placeholder="e.g. CS">
+    <input type="number" value="30" placeholder="Count">
+    <button class="del-btn" onclick="this.parentNode.remove();updateCount('aclasses-list','aclass-count')">×</button>`;
+  document.getElementById('aclasses-list').appendChild(d);
+  updateCount('aclasses-list','aclass-count');
+}
+
+function addEvent() {
+  const id = eCount++;
+  const d = document.createElement('div');
+  d.className = 'row-grid';
+  d.style.gridTemplateColumns = '50px 80px 80px 1fr 70px 110px 32px';
+  d.innerHTML = `
+    <input type="number" value="${id}" placeholder="ID">
+    <input type="number" placeholder="Course ID">
+    <input type="number" placeholder="Teacher ID">
+    <input type="text" placeholder="1,2 or just 1">
+    <input type="number" value="2" placeholder="Hrs">
+    <select><option value="lecture">lecture</option><option value="lab">lab</option></select>
+    <button class="del-btn" onclick="this.parentNode.remove();updateCount('events-list','event-count')">×</button>`;
+  document.getElementById('events-list').appendChild(d);
+  updateCount('events-list','event-count');
+}
+
+function updateCount(listId, countId) {
+  const n = document.getElementById(listId).children.length;
+  const el = document.getElementById(countId);
+  el.textContent = n + ' added';
+  el.className = 'tag ' + (n > 0 ? 'tag-green' : 'tag-gold');
+}
+
+// ── Build payload ────────────────────────────────────────────
+
+function buildPayload() {
+  const teachers = [...document.getElementById('teachers-list').children].map(r => {
+    const ins = r.querySelectorAll('input');
+    return { id: parseInt(ins[0].value), name: ins[1].value, department: ins[2].value };
+  });
+  const classrooms = [...document.getElementById('rooms-list').children].map(r => {
+    const ins = r.querySelectorAll('input'); const sel = r.querySelector('select');
+    return { id: parseInt(ins[0].value), name: ins[1].value, capacity: parseInt(ins[2].value), room_type: sel.value };
+  });
+  const courses = [...document.getElementById('courses-list').children].map(r => {
+    const ins = r.querySelectorAll('input'); const sel = r.querySelector('select');
+    return { id: parseInt(ins[0].value), code: ins[1].value, name: ins[2].value, weekly_hours: parseInt(ins[3].value), course_type: sel.value };
+  });
+  const admin_classes = [...document.getElementById('aclasses-list').children].map(r => {
+    const ins = r.querySelectorAll('input');
+    return { id: parseInt(ins[0].value), name: ins[1].value, program: ins[2].value, student_count: parseInt(ins[3].value) };
+  });
+  const teaching_events = [...document.getElementById('events-list').children].map(r => {
+    const ins = r.querySelectorAll('input'); const sel = r.querySelector('select');
+    const ids = ins[3].value.split(',').map(x => parseInt(x.trim())).filter(Boolean);
+    return { id: parseInt(ins[0].value), course_id: parseInt(ins[1].value), teacher_id: parseInt(ins[2].value), admin_class_ids: ids, weekly_hours: parseInt(ins[4].value), required_room_type: sel.value };
+  });
+  return {
+    name: document.getElementById('f-name').value,
+    num_weeks: parseInt(document.getElementById('f-weeks').value),
+    teachers, classrooms, courses, admin_classes, teaching_events,
+  };
+}
+
+// ── Review ───────────────────────────────────────────────────
+
+function renderReview() {
+  const p = buildPayload();
+  const el = document.getElementById('review-content');
+  const issues = [];
+  if (!p.name) issues.push('Instance name is empty');
+  if (p.teachers.length === 0) issues.push('No teachers added');
+  if (p.classrooms.length === 0) issues.push('No classrooms added');
+  if (p.courses.length === 0) issues.push('No courses added');
+  if (p.admin_classes.length === 0) issues.push('No student groups added');
+  if (p.teaching_events.length === 0) issues.push('No teaching events added');
+
+  el.innerHTML = `
+    <div class="kv"><span class="k">Instance name</span><span class="v">${p.name}</span></div>
+    <div class="kv"><span class="k">Weeks</span><span class="v">${p.num_weeks}</span></div>
+    <div class="kv"><span class="k">Teachers</span><span class="v">${p.teachers.length}</span></div>
+    <div class="kv"><span class="k">Classrooms</span><span class="v">${p.classrooms.length}</span></div>
+    <div class="kv"><span class="k">Courses</span><span class="v">${p.courses.length}</span></div>
+    <div class="kv"><span class="k">Student groups</span><span class="v">${p.admin_classes.length}</span></div>
+    <div class="kv"><span class="k">Teaching events</span><span class="v">${p.teaching_events.length}</span></div>
+    ${issues.length ? `<div style="margin-top:12px;padding:10px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:8px;font-size:12px;color:var(--red);">⚠ ${issues.join(' · ')}</div>` : ''}
+  `;
+}
+
+// ── Upload ───────────────────────────────────────────────────
+
+async function uploadData() {
+  const st = document.getElementById('upload-status');
+  const data = buildPayload();
+  setStatus(st, 'Uploading...', 'info');
+  try {
+    const r = await fetch(API+'/instances/custom', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || r.status);
+    setStatus(st, `✓ Registered: ${j.summary}`, 'ok');
+    setTimeout(() => goTo(7), 1200);
+  } catch(e) {
+    setStatus(st, 'Error: '+e.message, 'err');
+  }
+}
+
+function downloadJson() {
+  const data = buildPayload();
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (document.getElementById('f-name').value || 'data') + '.json';
+  a.click();
+}
+
+// ── Generate ─────────────────────────────────────────────────
+
+async function runGeneration() {
+  const st = document.getElementById('gen-status');
+  const instName = document.getElementById('f-name').value || 'my_university';
+  const pop  = parseInt(document.getElementById('g-pop').value);
+  const gens = parseInt(document.getElementById('g-gens').value);
+  const tlim = parseFloat(document.getElementById('g-time').value);
+
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('progress-section').style.display = 'block';
+  document.getElementById('result-section').style.display = 'none';
+  setStatus(st, 'Starting POGA-DP...', 'info');
+
+  try {
+    const r = await fetch(API+'/schedules/generate', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ instance_name: instName, population_size: pop, max_generations: gens, time_limit_sec: tlim })
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || r.status);
+    currentJobId = j.job_id;
+    setStatus(st, `Job ${j.job_id} started. Polling...`, 'info');
+    startPolling(j.job_id, gens);
+  } catch(e) {
+    setStatus(st, 'Error: '+e.message, 'err');
+    document.getElementById('run-btn').disabled = false;
+  }
+}
+
+function startPolling(jobId, maxGens) {
+  let progress = 0;
+  pollInterval = setInterval(async () => {
+    try {
+      const r = await fetch(API+`/schedules/jobs/${jobId}`);
+      const j = await r.json();
+      const gen = j.progress?.generation || 0;
+      progress = Math.min(95, Math.round((gen / maxGens) * 100));
+      document.getElementById('progress-bar').style.width = progress + '%';
+      document.getElementById('progress-label').textContent =
+        `Phase: ${j.progress?.phase || '–'} | Generation: ${gen} | Best fitness: ${j.progress?.best_fitness?.toFixed(2) ?? '–'}`;
+
+      if (j.status === 'COMPLETED') {
+        clearInterval(pollInterval);
+        document.getElementById('progress-bar').style.width = '100%';
+        document.getElementById('progress-label').textContent = 'Complete!';
+        showResult(j.result, jobId);
+      } else if (j.status === 'FAILED') {
+        clearInterval(pollInterval);
+        setStatus(document.getElementById('gen-status'), 'Failed: '+j.error, 'err');
+        document.getElementById('run-btn').disabled = false;
+      }
+    } catch(e) {
+      clearInterval(pollInterval);
+      setStatus(document.getElementById('gen-status'), 'Poll error: '+e.message, 'err');
+    }
+  }, 1200);
+}
+
+function showResult(res, jobId) {
+  document.getElementById('result-section').style.display = 'block';
+  document.getElementById('run-btn').disabled = false;
+
+  const feasible = res.feasible;
+  document.getElementById('r-feasible').innerHTML =
+    feasible ? '<span class="tag tag-green">✓ FEASIBLE</span>' : '<span class="tag tag-red">✗ INFEASIBLE</span>';
+  document.getElementById('r-fitness').textContent = res.final_fitness.toFixed(2);
+  document.getElementById('r-occ').textContent = res.occupancy_pct.toFixed(1) + '%';
+
+  document.getElementById('csv-link').href = `${API}/schedules/${jobId}/export/csv`;
+  document.getElementById('json-link').href = `${API}/schedules/${jobId}/export/json`;
+
+  // Populate class selector
+  const sel = document.getElementById('tt-class-select');
+  sel.innerHTML = '';
+  const classes = [...new Set(res.scheduled_events.flatMap(e => e.admin_classes))];
+  classes.forEach(c => { const o = document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+  if (classes.length) loadTimetable();
+  setStatus(document.getElementById('gen-status'), `✓ Done — fitness: ${res.final_fitness.toFixed(2)}, violations: ${res.hard_violations}`, 'ok');
+}
+
+async function loadTimetable() {
+  if (!currentJobId) return;
+  const cls = document.getElementById('tt-class-select').value;
+  try {
+    const r = await fetch(`${API}/schedules/${currentJobId}/timetable?admin_class_name=${encodeURIComponent(cls)}`);
+    const j = await r.json();
+    renderTimetable(j.grid);
+  } catch(e) { console.error(e); }
+}
+
+function renderTimetable(grid) {
+  let html = '<table class="tt-table"><thead><tr><th>Period</th>';
+  DAYS.forEach(d => html += `<th>${d}</th>`);
+  html += '</tr></thead><tbody>';
+  grid.forEach(row => {
+    html += `<tr><td style="color:var(--muted);font-weight:600;font-size:11px;text-align:center;">${row.period}</td>`;
+    DAYS.forEach(d => {
+      const cell = row.days[d];
+      if (cell && cell.course) {
+        html += `<td><div class="tt-cell">
+          <div class="tt-course">${cell.course}${cell.joint?' <span style="color:var(--blue);font-size:9px;">joint</span>':''}</div>
+          <div class="tt-sub">${cell.teacher}</div>
+          <div class="tt-sub">${cell.room}</div>
+        </div></td>`;
+      } else {
+        html += '<td></td>';
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('tt-container').innerHTML = html;
+}
+
+// ── JSON tab ─────────────────────────────────────────────────
+
+const TEMPLATE = {"name":"my_university","num_weeks":16,"teachers":[{"id":1,"name":"Dr. Ahmed","department":"CS"},{"id":2,"name":"Dr. Sara","department":"Math"},{"id":3,"name":"Dr. Youssef","department":"CS"}],"classrooms":[{"id":1,"name":"Hall-A","capacity":80,"room_type":"lecture"},{"id":2,"name":"Hall-B","capacity":60,"room_type":"lecture"},{"id":3,"name":"Lab-101","capacity":30,"room_type":"lab"}],"courses":[{"id":1,"code":"CS101","name":"Programming","weekly_hours":2,"course_type":"lecture"},{"id":2,"code":"CS102","name":"Prog Lab","weekly_hours":2,"course_type":"lab"},{"id":3,"code":"MATH101","name":"Calculus","weekly_hours":2,"course_type":"lecture"}],"admin_classes":[{"id":1,"name":"CS-Y1-A","program":"CS","year_level":1,"student_count":45},{"id":2,"name":"CS-Y1-B","program":"CS","year_level":1,"student_count":40}],"teaching_events":[{"id":1,"course_id":1,"teacher_id":1,"admin_class_ids":[1,2],"weekly_hours":2,"required_room_type":"lecture","total_students":85},{"id":2,"course_id":2,"teacher_id":3,"admin_class_ids":[1],"weekly_hours":2,"required_room_type":"lab","total_students":45},{"id":3,"course_id":3,"teacher_id":2,"admin_class_ids":[1,2],"weekly_hours":2,"required_room_type":"lecture","total_students":85}]};
+
+function loadTemplate() { document.getElementById('json-area').value = JSON.stringify(TEMPLATE,null,2); }
+function formatJson() {
+  try {
+    const v = document.getElementById('json-area').value;
+    document.getElementById('json-area').value = JSON.stringify(JSON.parse(v),null,2);
+  } catch(e) { setStatus(document.getElementById('json-status'),'Invalid JSON: '+e.message,'err'); }
+}
+
+async function uploadJson() {
+  const st = document.getElementById('json-status');
+  let data;
+  try { data = JSON.parse(document.getElementById('json-area').value); }
+  catch(e) { setStatus(st,'Invalid JSON: '+e.message,'err'); return; }
+  setStatus(st,'Uploading...','info');
+  try {
+    const r = await fetch(API+'/instances/custom',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail||r.status);
+    document.getElementById('f-name').value = data.name;
+    setStatus(st,`✓ Registered: ${j.summary}`,'ok');
+  } catch(e) { setStatus(st,'Error: '+e.message,'err'); }
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+
+function setStatus(el, msg, type) {
+  el.textContent = msg;
+  el.className = 'status ' + type;
+}
+</script>
+</body>
+</html>
